@@ -1,215 +1,210 @@
--- Part 2 : Complex Table Creation
--- Task 2.1 : University Management System
+DROP TABLE IF EXISTS assignments CASCADE;
+DROP TABLE IF EXISTS projects CASCADE;
+DROP TABLE IF EXISTS employees CASCADE;
 
--- 1. Table : students
-CREATE TABLE students (
-                          student_id SERIAL PRIMARY KEY,
-                          first_name VARCHAR(50),
-                          last_name VARCHAR(50),
-                          email VARCHAR(100),
-                          phone CHAR(15),
-                          date_of_birth DATE,
-                          enrollment_date DATE,
-                          gpa NUMERIC(3, 2),
-                          is_active BOOLEAN,
-                          graduation_year SMALLINT
+
+
+-- Create tables
+CREATE TABLE employees (
+                           employee_id SERIAL PRIMARY KEY,
+                           first_name VARCHAR(50),
+                           last_name VARCHAR(50),
+                           department VARCHAR(50),
+                           salary NUMERIC(10,2),
+                           hire_date DATE,
+                           manager_id INTEGER,
+                           email VARCHAR(100)
+);
+CREATE TABLE projects (
+                          project_id SERIAL PRIMARY KEY,
+                          project_name VARCHAR(100),
+                          budget NUMERIC(12,2),
+                          start_date DATE,
+                          end_date DATE,
+                          status VARCHAR(20)
+);
+CREATE TABLE assignments (
+                             assignment_id SERIAL PRIMARY KEY,
+                             employee_id INTEGER REFERENCES employees(employee_id),
+                             project_id INTEGER REFERENCES projects(project_id),
+                             hours_worked NUMERIC(5,1),
+                             assignment_date DATE
 );
 
--- 2. Table : professors
-CREATE TABLE professors (
-                            professor_id SERIAL PRIMARY KEY,
-                            first_name VARCHAR(50),
-                            last_name VARCHAR(50),
-                            email VARCHAR(100),
-                            office_number VARCHAR(20),
-                            hire_date DATE,
-                            salary NUMERIC(12, 2),
-                            is_tenured BOOLEAN,
-                            years_experience INTEGER
+-- Insert sample data
+INSERT INTO employees (first_name, last_name, department,
+                       salary, hire_date, manager_id, email) VALUES
+                                                                 ('John', 'Smith', 'IT', 75000, '2020-01-15', NULL,
+                                                                  'john.smith@company.com'),
+                                                                 ('Sarah', 'Johnson', 'IT', 65000, '2020-03-20', 1,
+                                                                  'sarah.j@company.com'),
+                                                                 ('Michael', 'Brown', 'Sales', 55000, '2019-06-10', NULL,
+                                                                  'mbrown@company.com'),
+                                                                 ('Emily', 'Davis', 'HR', 60000, '2021-02-01', NULL,
+                                                                  'emily.davis@company.com'),
+                                                                 ('Robert', 'Wilson', 'IT', 70000, '2020-08-15', 1, NULL),
+                                                                 ('Lisa', 'Anderson', 'Sales', 58000, '2021-05-20', 3,
+                                                                  'lisa.a@company.com');
+INSERT INTO projects (project_name, budget, start_date,
+                      end_date, status) VALUES
+                                            ('Website Redesign', 150000, '2024-01-01', '2024-06-30',
+                                             'Active'),
+                                            ('CRM Implementation', 200000, '2024-02-15', '2024-12-31',
+                                             'Active'),
+                                            ('Marketing Campaign', 80000, '2024-03-01', '2024-05-31',
+                                             'Completed'),
+                                            ('Database Migration', 120000, '2024-01-10', NULL, 'Active');
+INSERT INTO assignments (employee_id, project_id,
+                         hours_worked, assignment_date) VALUES
+                                                            (1, 1, 120.5, '2024-01-15'),
+                                                            (2, 1, 95.0, '2024-01-20'),
+                                                            (1, 4, 80.0, '2024-02-01'),
+                                                            (3, 3, 60.0, '2024-03-05'),
+                                                            (5, 2, 110.0, '2024-02-20'),
+                                                            (6, 3, 75.5, '2024-03-10');
+
+
+
+-- Part 1: Basic SELECT Queries
+--Task 1.1:
+SELECT first_name || ' ' || last_name AS full_name, department, salary
+FROM employees;
+
+--Task 1.2:
+SELECT DISTINCT department
+FROM employees;
+
+--Task 1.3:
+SELECT project_name, budget,
+       CASE
+           WHEN budget > 150000 THEN 'Large'
+           WHEN budget BETWEEN 100000 AND 150000 THEN 'Medium'
+           ELSE 'Small'
+           END AS budget_category
+FROM projects;
+
+--Task 1.4:
+SELECT first_name, last_name, COALESCE(email, 'No email provided') AS email_status
+FROM employees;
+
+
+--Part 2: WHERE Clause and Comparison operators
+--Task 2.1:
+SELECT *
+FROM employees
+WHERE hire_date > '2020-01-01';
+
+--Task 2.2:
+SELECT *
+FROM employees
+WHERE salary BETWEEN 60000 AND 70000;
+
+--Task 2.3:
+SELECT *
+FROM employees
+WHERE last_name LIKE 'S%' OR last_name LIKE 'J%';
+
+--Task 2.4:
+SELECT *
+FROM employees
+WHERE manager_id IS NOT NULL AND department = 'IT';
+
+
+--Part 3: String and Mathematical Functions:
+--Task 3.1:
+SELECT UPPER(first_name) AS upper_first_name,
+       LENGTH(last_name) AS last_name_length,
+       SUBSTRING(email, 1, 3) AS email_prefix
+FROM employees;
+
+--Task 3.2:
+SELECT first_name, last_name,
+       salary * 12 AS annual_salary,
+       ROUND(salary, 2) AS monthly_salary,
+       salary * 1.10 AS salary_with_raise
+FROM employees;
+
+--Task 3.3:
+SELECT FORMAT('Project: %s - Budget: $%s - Status: %s', project_name, budget, status) AS project_info
+FROM projects;
+
+--Task 3.4:
+SELECT first_name, last_name,
+       EXTRACT(YEAR FROM AGE(CURRENT_DATE, hire_date)) AS years_with_company
+FROM employees;
+
+
+--Part 4: Aggregate Functions and GROUP BY
+--Task 4.1:
+SELECT department, AVG(salary) AS avg_salary
+FROM employees
+GROUP BY department;
+
+--Task 4.2:
+SELECT p.project_name, SUM(a.hours_worked) AS total_hours
+FROM projects p
+         JOIN assignments a ON p.project_id = a.project_id
+GROUP BY p.project_id, p.project_name;
+
+--Task 4.3:
+SELECT department, COUNT(*) AS employee_count
+FROM employees
+GROUP BY department
+HAVING COUNT(*) > 1;
+
+--Task 4.4:
+SELECT MAX(salary) AS max_salary,
+       MIN(salary) AS min_salary,
+       SUM(salary) AS total_payroll
+FROM employees;
+
+
+--Part 5: Set Operations
+--Task 5.1:
+SELECT employee_id, first_name FROM employees WHERE salary > 65000
+UNION
+SELECT employee_id, first_name FROM employees WHERE hire_date > '2020-01-01';
+
+--Task 5.2:
+SELECT employee_id FROM employees WHERE department = 'IT'
+INTERSECT
+SELECT employee_id FROM employees WHERE salary > 65000;
+
+--Task 5.3:
+SELECT employee_id FROM employees
+EXCEPT
+SELECT employee_id FROM assignments;
+
+
+--Part 6: Subqueries
+--Task 6.1:
+SELECT * FROM employees e WHERE EXISTS (SELECT 1 FROM assignments a WHERE a.employee_id = e.employee_id);
+
+--Task 6.2:
+SELECT * FROM employees WHERE employee_id IN (
+    SELECT employee_id FROM assignments a JOIN projects p ON a.project_id = p.project_id WHERE p.status = 'Active'
 );
 
--- 3. Table : courses
-CREATE TABLE courses (
-                         course_id SERIAL PRIMARY KEY,
-                         course_code CHAR(8),
-                         course_title VARCHAR(100),
-                         description TEXT,
-                         credits SMALLINT,
-                         max_enrollment INTEGER,
-                         course_fee NUMERIC(10, 2),
-                         is_online BOOLEAN,
-                         created_at TIMESTAMP
-);
+--Task 6.3:
+SELECT * FROM employees WHERE salary > ANY (SELECT salary FROM employees WHERE department = 'Sales');
 
 
--- Task 2.2 : Time-based and Specialized Tables
+--Part 7:Complex Queries
+--Task 7.1:
+SELECT first_name, department, RANK() OVER (PARTITION BY department ORDER BY salary DESC)
+FROM employees;
 
-CREATE TABLE class_schedule (
-                                schedule_id SERIAL PRIMARY KEY,
-                                course_id INTEGER,
-                                professor_id INTEGER,
-                                classroom VARCHAR(20),
-                                class_date DATE,
-                                start_time TIME,
-                                end_time TIME,
-                                duration INTERVAL
-);
+--Task 7.2:
+SELECT p.project_name, SUM(a.hours_worked)
+FROM projects p JOIN assignments a ON p.project_id = a.project_id
+GROUP BY p.project_id, p.project_name HAVING SUM(a.hours_worked) > 150;
 
-CREATE TABLE student_records (
-                                 record_id SERIAL PRIMARY KEY,
-                                 student_id INTEGER,
-                                 course_id INTEGER,
-                                 semester VARCHAR(20),
-                                 year INTEGER,
-                                 grade CHAR(2),
-                                 attendance_percentage NUMERIC(4, 1),
-                                 submission_timestamp TIMESTAMPTZ,
-                                 last_updated TIMESTAMPTZ
-);
+--Task 7.3:
+SELECT department, COUNT(*), AVG(salary), MAX(salary)
+FROM employees
+GROUP BY department;
 
 
 
--- Part 3 : Advanced ALTER TABLE Operations
--- Task 3.1 : Modifying Existing Tables
--- 1. Modify students table
-ALTER TABLE students ADD COLUMN middle_name VARCHAR(30);
-ALTER TABLE students ADD COLUMN student_status VARCHAR(20) DEFAULT 'ACTIVE';
-ALTER TABLE students ALTER COLUMN phone TYPE VARCHAR(20);
-ALTER TABLE students ALTER COLUMN gpa SET DEFAULT 0.00;
-
--- 2. Modify professors table
-ALTER TABLE professors ADD COLUMN department_code CHAR(5);
-ALTER TABLE professors ADD COLUMN research_area TEXT;
-ALTER TABLE professors ALTER COLUMN years_experience TYPE SMALLINT;
-ALTER TABLE professors ALTER COLUMN is_tenured SET DEFAULT false;
-ALTER TABLE professors ADD COLUMN last_promotion_date DATE;
-
--- 3. Modify courses table
-ALTER TABLE courses ADD COLUMN prerequisite_course_id INTEGER;
-ALTER TABLE courses ADD COLUMN difficulty_level SMALLINT;
-ALTER TABLE courses ALTER COLUMN course_code TYPE VARCHAR(10);
-ALTER TABLE courses ALTER COLUMN credits SET DEFAULT 3;
-ALTER TABLE courses ADD COLUMN lab_required BOOLEAN DEFAULT false;
 
 
--- Task 3.2: Column Management Operations
--- 1. For class_schedule table
-ALTER TABLE class_schedule ADD COLUMN room_capacity INTEGER;
-ALTER TABLE class_schedule DROP COLUMN duration;
-ALTER TABLE class_schedule ADD COLUMN session_type VARCHAR(15);
-ALTER TABLE class_schedule ALTER COLUMN classroom TYPE VARCHAR(30);
-ALTER TABLE class_schedule ADD COLUMN equipment_needed TEXT;
-
--- 2. For student_records table
-ALTER TABLE student_records ADD COLUMN extra_credit_points NUMERIC(3, 1) DEFAULT 0.0;
-ALTER TABLE student_records ALTER COLUMN grade TYPE VARCHAR(5);
-ALTER TABLE student_records ADD COLUMN final_exam_date DATE;
-ALTER TABLE student_records DROP COLUMN last_updated;
-
-
--- Part 4 : Table Relationships and Management
--- Task 4.1 : Additional Supporting Tables
--- 1. Table : departments
-CREATE TABLE departments (
-                             department_id SERIAL PRIMARY KEY,
-                             department_name VARCHAR(100),
-                             department_code CHAR(5),
-                             building VARCHAR(50),
-                             phone VARCHAR(15),
-                             budget NUMERIC(12, 2),
-                             established_year INTEGER
-);
-
--- 2. Table : library_books
-CREATE TABLE library_books (
-                               book_id SERIAL PRIMARY KEY,
-                               isbn CHAR(13),
-                               title VARCHAR(200),
-                               author VARCHAR(100),
-                               publisher VARCHAR(100),
-                               publication_date DATE,
-                               price NUMERIC(10, 2),
-                               is_available BOOLEAN,
-                               acquisition_timestamp TIMESTAMP
-);
-
--- 3. Table : student_book_loans
-CREATE TABLE student_book_loans (
-                                    loan_id SERIAL PRIMARY KEY,
-                                    student_id INTEGER,
-                                    book_id INTEGER,
-                                    loan_date DATE,
-                                    due_date DATE,
-                                    return_date DATE,
-                                    fine_amount NUMERIC(10, 2),
-                                    loan_status VARCHAR(20)
-);
-
--- Task 4.2 : Table Modifications for Integration
-
--- 1. Add foreign key columns (just adding columns)
-ALTER TABLE professors ADD COLUMN department_id INTEGER;
-ALTER TABLE students ADD COLUMN advisor_id INTEGER;
-ALTER TABLE courses ADD COLUMN department_id INTEGER;
-
--- 2. Create lookup tables:
-
--- Table : grade_scale
-CREATE TABLE grade_scale (
-                             grade_id SERIAL PRIMARY KEY,
-                             letter_grade CHAR(2),
-                             min_percentage NUMERIC(4, 1),
-                             max_percentage NUMERIC(4, 1),
-                             gpa_points NUMERIC(3, 2)
-);
-
--- Table : semester_calendar
-CREATE TABLE semester_calendar (
-                                   semester_id SERIAL PRIMARY KEY,
-                                   semester_name VARCHAR(20),
-                                   academic_year INTEGER,
-                                   start_date DATE,
-                                   end_date DATE,
-                                   registration_deadline TIMESTAMPTZ,
-                                   is_current BOOLEAN
-);
-
-
-
--- Part 5 : Table Deletion and Cleanup
--- Task 5.1 : Conditional Table Operations
--- 1. Drop tables if they exist:
-DROP TABLE IF EXISTS student_book_loans;
-DROP TABLE IF EXISTS library_books;
-DROP TABLE IF EXISTS grade_scale;
-
--- 2. Recreate grade_scale table with description column:
-CREATE TABLE grade_scale (
-                             grade_id SERIAL PRIMARY KEY,
-                             letter_grade CHAR(2),
-                             min_percentage NUMERIC(4, 1),
-                             max_percentage NUMERIC(4, 1),
-                             gpa_points NUMERIC(3, 2),
-                             description TEXT
-);
-
--- 3. Drop and recreate with CASCADE:
-DROP TABLE IF EXISTS semester_calendar CASCADE;
-
-CREATE TABLE semester_calendar (
-                                   semester_id SERIAL PRIMARY KEY,
-                                   semester_name VARCHAR(20),
-                                   academic_year INTEGER,
-                                   start_date DATE,
-                                   end_date DATE,
-                                   registration_deadline TIMESTAMPTZ,
-                                   is_current BOOLEAN
-);
-
-
--- Task 5.2 : Database Cleanup
--- 1. Database operations:
-DROP DATABASE IF EXISTS university_test;
-DROP DATABASE IF EXISTS university_distributed;
-
-CREATE DATABASE university_backup TEMPLATE university_main;
